@@ -28,32 +28,224 @@ class Game():
         def __init__(self, filePath):
                 self.onDisk = filePath
                 self.clients = [-1, -1] 
-                self.score = [-1, -1]
+                self.score = [0, 0] #wins from each game
                 self.matches = 0
-                self.results = [-1, -1]
+                self.numClients = 0
+                self.results = [0, 0] #most recent results
+                self.plays = [-1, -1] #r, p or s logically=to 1,2 or 3
+                self.tied = False
                 self.reset = [False, False]
                 self.f = open(self.onDisk, "w+")
-                self.f.write("ip, clientIden, request, data\n")
+                self.f.write("ip,clientIden,request,data,status\n")
                 self.f.close()
-                                
+
+
+
+        def serialize(self):
+                pass
+##                self.f = open(self.onDisk, "r")
+##                for line in self.f:
+##                        line = line.split(",")
+##                        #print(str(line[4]) + str(line[4]==200))
+##                        if(line[4] == "200"):
+##                                print("here")
+##                                if(line[2] == "GET:init"):
+##                                        self.clients[0] = line[1] if self.clients[0] == -1 else self.clients[0]
+##                                        self.clients[1] = line[1] if self.clients[1] == -1 else self.clients[1]
+##                                elif(line[2] == "PUT:play"):
+##                                        self.plays[0] = line[3] if self.clients[0] == line[1] else self.plays[0]
+##                                        self.plays[1] = line[3] if self.clients[1] == line[1] else self.plays[1]
+##                                elif(line[2] == "PUT:reset"):
+##                                        self.reset[0] = True if self.clients[0] == line[1] else False
+##                                        self.reset[1] = True if self.clients[1] == line[1] else False
+##                                else:
+##                                        pass
+##
+##                                if(self.plays[0] != -1 and self.plays[1] != -1):
+##                                        print("here")#self.getVictor()
+##                                self.getVictor() if (self.plays[0] != -1 and self.plays[1] != -1) else 0
+##                                
+##                self.f.close()
+
+
+
+        def writeData(self, ip, source, requestType, data, status):
+                out = str(ip) + "," + str(source) + "," + str(requestType) + "," + str(data) + "," + str(status) + "\n"
+                self.f = open(self.onDisk, "a+")
+                self.f.write(out)
+                self.f.close()
+
+
 
         def resetGame(self):
                 self.f = open(self.onDisk, "w+")
-                self.f.write("ip, clientIden, request, data\n")
+                self.f.write("ip,clientIden,request,data,status\n")
+                self.writeData("clients", "clients", "gameReset", ("clients " + str(self.clients[0]) + " " + str(self.clients[1]) + "both requested a game reset"), "200")
                 self.f.close()
+                self.score = [0, 0]
+                self.matches = 0
+                self.results = [0, 0]
+                self.plays = [-1, -1]
+                self.tied = False
+                self.reset = [False, False]
+
+
 
         def getResults(self, ip, source):
-                #rps logic, return waiting for other player, etc... also NO LOOPS!!
-                pass
+                self.serialize()
+                index = -1
+                response = ""
+                for i in range(len(self.clients)):
+                        if(int(source) == int(self.clients[i])):
+                                index = i
+                other = 0 if index == 1 else 1
+
+                
+                #waiting for other client's play or your play
+
+                #waiting for other player
+
+                if(self.results[index] == 1):
+                        response += "You won match " + str(self.matches) + "!"
+                elif(self.tied):
+                        response += "This match tied; send another move"
+                elif(self.results[index] == self.results[other]):
+                        response += "Results for match " + str(self.matches) + " have not been determined yet"
+                else:
+                        response += "You lost match " + str(self.matches)
+                
+                if(self.numClients == 0):
+                        errCode = 500
+                        err = "Server restart occured, restart client"
+                        self.writeData(ip, source, "GET:results", str(err), errCode)
+                        return [errCode, err]
+
+                self.writeData(ip, source, "GET:results", str(response), 200)
+                
+                return [200, response]
+
+
 
         def getScore(self, ip, source):
-                pass
+                self.serialize()
+                index = -1
+                response = ""
+                for i in range(len(self.clients)):
+                        if(int(source) == int(self.clients[i])):
+                                index = i
+                other = 0 if index == 1 else 1
+
+                if(self.score[index] > self.score[other]):
+                        response += "You are currently winning: "
+                elif(self.score[index] < self.score[other]):
+                        response += "You are currently behind: "
+                else:
+                        response += "You are currently tied: "
+                
+                if(index == 0):
+                        response += ("[" + str(self.score[0]) + ":" + str(self.score[1]) + "]")
+                else:
+                        response += ("[" + str(self.score[1]) + ":" + str(self.score[0]) + "]")
+
+                if(self.numClients == 0):
+                        errCode = 500
+                        err = "Server restart occured: restart client"
+                        self.writeData(ip, source, "GET:results", str(err), errCode)
+                        return [errCode, err]                
+
+                self.writeData(ip, source, "GET:score", str(response), 200)
+                
+                return [200, response]
+
+
 
         def putResetRequest(self, ip, source):
-                pass
+                index = -1
+                response = ""
+                for i in range(len(self.clients)):
+                        if(int(source) == int(self.clients[i])):
+                                index = i
+                other = 0 if index == 1 else 1
+
+                if(self.reset[index] == True):
+                        response = 'reset already requested'
+                        return [200, response]
+
+                self.reset[index] = True
+                response = 'reset request successful'
+
+                if(self.reset[index] and self.reset[other]):
+                        self.resetGame()
+                        response += ': game reset'
+                else:
+                        response += (': waiting on client ' + str(self.clients[other]))
+
+                self.writeData(ip, source, "PUT:reset", str(response), 200)
+                return [200, response]
+
+
 
         def putPlay(self, ip, source, play):
-                pass
+                index = -1
+                response = ""
+                for i in range(len(self.clients)):
+                        if(int(source) == int(self.clients[i])):
+                                index = i
+                other = 0 if index == 1 else 1
+
+                if(self.plays[index] != -1):
+                        response = "play failed"
+                        response += ("; waiting for client " + str(self.clients[other]) + " to play")
+                        return [200, response]
+
+                if(play == 'rock'):
+                        self.plays[index] = 1
+                elif(play == 'paper'):
+                        self.plays[index] = 2
+                elif(play == 'scizors'):
+                        self.plays[index] = 3
+                else:
+                        return [400, str('This play does not exist: ' + str(play))]
+
+                response = 'successfully played: ' + play
+
+                if(self.plays[other] == -1):
+                        response += ("; waiting for client " + str(self.clients[other]) + " to play")
+                else:
+                        self.results = [0, 0]
+                        if(self.plays[0] == self.plays[1]):
+                                response += "; match tied"
+                                self.plays = [-1, -1]
+                                self.tied = True
+                        else:
+                                if(self.plays[0] == 1 and self.plays[1] == 2):
+                                        self.incriment(1)
+                                elif(self.plays[0] == 1 and self.plays[1] == 3):
+                                        self.incriment(0)
+                                elif(self.plays[0] == 2 and self.plays[1] == 1):
+                                        self.incriment(0)
+                                elif(self.plays[0] == 2 and self.plays[1] == 3):
+                                        self.incriment(1)
+                                elif(self.plays[0] == 3 and self.plays[1] == 1):
+                                        self.incriment(1)
+                                elif(self.plays[0] == 3 and self.plays[1] == 2):
+                                        self.incriment(0)
+                                else:
+                                        return [500, 'Unrecoverable Server Error: Restart Required']
+                                self.tied = False
+                                self.plays = [-1, -1]
+                                response += "; match results availible"
+                
+                self.writeData(ip, source, "PUT:play", str(response), 200)
+                return [200, response]
+
+        def incriment(self, winner):
+                self.matches += 1
+                self.score[winner] += 1
+                if(winner == 0):
+                        self.results = [1, 0]
+                else:
+                        self.results = [0, 1]
 
         def initClientConnection(self, ip, source):
                 if(int(self.clients[0]) == -1):
@@ -61,18 +253,39 @@ class Game():
                 elif(int(self.clients[1]) == -1):
                         self.clients[1] = source
                 else:
+                        self.writeData(ip, source, "GET:init", "new connection refused: too many clients", 409)
                         return 409
-                out = str(ip) + ", " + str(source) + ", GET:init, new connection"
-                self.f = open(self.onDisk, "a+")
-                self.f.write(out)
-                self.f.close()
+                out = str(ip) + ", " + str(source) + ", GET:init, new connection\n"
+                self.writeData(ip, source, "GET:init", "new connection", 200)
+                self.numClients += 1
                 return 200
 
+
+
+        def disconnectClient(self, ip, source):
+                self.numClients -= 1
+                self.clients[0] = -1 if self.clients[0] == source else self.clients[0]
+                self.clients[1] = -1 if self.clients[1] == source else self.clients[1]
+
+                if(self.clients[0] == -1 and self.clients[1] == -1):
+                        self.reset()
+                
+                if(self.clients[0] == source or self.clients[1] == source):
+                        errCode = 503
+                        err = "Disconnection Unsuccessful"
+                        return [errCode, err]
+                self.writeData(ip, source, "PUT:disCon", "remove connection", 200)
+                return [200, "Disconnected"]
+
         def __str__(self):
-                return str(self.clients)
+                return str(self.score) + ", " + str(self.clients)
+
+
         
 onDisk = "data.csv"
 rps = Game(onDisk)
+
+
 
 class MyHTTPRequestHandler(SimpleHTTPRequestHandler):
         """Simple HTTP request handler with GET and HEAD commands.
@@ -94,26 +307,27 @@ class MyHTTPRequestHandler(SimpleHTTPRequestHandler):
                         directory = os.getcwd()
                 self.directory = directory
                 super().__init__(*args, **kwargs)
+
+
         
         def do_GET(self):
                 """Serve a GET request."""
                 path = self.path
-                print(path)
                 path = path.split('?')
-                print(path)
                 path = path[1]
-                print(path)
                 path = path.split('&')
-                print(path)
+                currClient = path[1]
+                currClient = currClient.split('=')
                 path = path[0]
-                print(path)
                 path = path.split('=')
-                print(path)
-                path = {path[0]:path[1]}
-                print("type" + path.get('type'))
+                path = {path[0]:path[1], currClient[0]:currClient[1]}
+                client = int(path.get('iden'))
+                hostIP = self.client_address[0]
+                #print("path: " + str(path))
+                #print("type: " + path.get('type'))
+                #print("iden: " + str(path.get('iden')))
 
-                if(path.get('type') == 'init'):
-                        hostIP = self.client_address[0]
+                if((path.get('type') == 'init') and (int(path.get('iden')) == -1)):
                         sourcePort = self.client_address[1]
                         status = self.game.initClientConnection(hostIP, sourcePort)
                         self.send_response(status)
@@ -122,19 +336,30 @@ class MyHTTPRequestHandler(SimpleHTTPRequestHandler):
                         response = BytesIO()
                         response.write(sourcePort)
                         self.wfile.write(response.getvalue())
-                        print(self.game)
                 elif(path.get('type') == 'results'):
-                        print("\ngetting results...")
-                        self.game.getResults(0,0)
-                elif(path.get('type') == 'score'):
-                        print("\ngetting score...")
-                else:
-                        hostIP = self.client_address[0]
-                        sourcePort = self.client_address[1]
-                        print(sourcePort)
-                        self.send_response(200)
+                        status = self.game.getResults(hostIP,client)
+                        response = status[1]
+                        status = int(status[0])
+                        self.send_response(status)
                         self.end_headers()
-                        self.wfile.write(b'This is a response to GET request. ')         
+                        data = bytes(str(response), 'utf-8')
+                        response = BytesIO()
+                        response.write(data)
+                        self.wfile.write(response.getvalue())
+                elif(path.get('type') == 'score'):               
+                        status = self.game.getScore(hostIP, client)
+                        response = status[1]
+                        status = int(status[0])
+                        self.send_response(status)
+                        self.end_headers()
+                        data = bytes(str(response), 'utf-8')
+                        response = BytesIO()
+                        response.write(data)
+                        self.wfile.write(response.getvalue())
+                else:
+                        self.send_response(501)
+                        self.end_headers()
+                        self.wfile.write(b'This type of GET request is not supported. ')         
                 
                                    
 
@@ -142,18 +367,80 @@ class MyHTTPRequestHandler(SimpleHTTPRequestHandler):
                 """Server a PUT request."""
                 dataLength = int(self.headers['Content-Length'])
                 data = self.rfile.read(dataLength)
-                print(data)
-                print(type(data))
+                pData = data.decode('utf-8')
+                pData = pData.split('&')
+                reset = pData[0]
+                reset = reset.split('=')
+                play = pData[1]
+                play = play.split('=')
+                iden = pData[2]
+                iden = iden.split('=')
+                pData = {'reset' : reset[1], 'play' : play[1], 'iden' : iden[1]}
                 hostIP = self.client_address[0]
-                sourcePort = self.client_address[1]
+                #print("reset: " + str(pData.get('reset')))
+                #print("play: " + str(pData.get('play')))
+                #print("iden: " + str(pData.get('iden')))
                 
-                self.send_response(200)
-                self.end_headers()
-                response = BytesIO()
-                response.write(b'This is a PUT request. ')
-                response.write(b'Recieved: ')
-                response.write(data)
-                self.wfile.write(response.getvalue())
+                if(str(pData.get('play')) == 'disCon'):
+                        status = self.game.disconnectClient(hostIP, int(pData.get('iden')))
+                        response = status[1]
+                        status = int(status[0])
+                        self.send_response(status)
+                        self.end_headers()
+                        data = bytes(str(response), 'utf-8')
+                        response = BytesIO()
+                        response.write(data)
+                        self.wfile.write(response.getvalue())
+                elif(str(pData.get('reset')) == 'True'):
+                        status = self.game.putResetRequest(hostIP, int(pData.get('iden')))
+                        response = status[1]
+                        status = int(status[0])
+                        self.send_response(status)
+                        self.end_headers()
+                        data = bytes(str(response), 'utf-8')
+                        response = BytesIO()
+                        response.write(data)
+                        self.wfile.write(response.getvalue())
+                elif(str(pData.get('play')) == 'rock'):
+                        status = self.game.putPlay(hostIP, int(pData.get('iden')), str(pData.get('play')))
+                        response = status[1]
+                        status = int(status[0])
+                        self.send_response(status)
+                        self.end_headers()
+                        data = bytes(str(response), 'utf-8')
+                        response = BytesIO()
+                        response.write(data)
+                        self.wfile.write(response.getvalue())
+                elif(str(pData.get('play')) == 'scizors'):
+                        status = self.game.putPlay(hostIP, int(pData.get('iden')), str(pData.get('play')))
+                        response = status[1]
+                        status = int(status[0])
+                        self.send_response(status)
+                        self.end_headers()
+                        data = bytes(str(response), 'utf-8')
+                        response = BytesIO()
+                        response.write(data)
+                        self.wfile.write(response.getvalue())
+                elif(str(pData.get('play')) == 'paper'):
+                        status = self.game.putPlay(hostIP, int(pData.get('iden')), str(pData.get('play')))
+                        response = status[1]
+                        status = int(status[0])
+                        self.send_response(status)
+                        self.end_headers()
+                        data = bytes(str(response), 'utf-8')
+                        response = BytesIO()
+                        response.write(data)
+                        self.wfile.write(response.getvalue())
+                else:
+                        self.send_response(501)
+                        self.end_headers()
+                        response = BytesIO()
+                        self.wfile.write(b'This type of PUT request is not supported. ')
+                        response.write(b'Recieved: ')
+                        response.write(data)
+                        self.wfile.write(response.getvalue())
+
+
         
         def do_HEAD(self):
                 """Serve a HEAD request."""
@@ -389,8 +676,9 @@ def run(server_class=HTTPServer, handler_class=BaseHTTPRequestHandler):
                 
         server_address = ('', port)
         httpd = server_class(server_address, handler_class)
-        print("\nServing on port " + str(port))
+        print("\nServing on port " + str(port) + "\n")
         httpd.serve_forever()
+
 
 
 if __name__ == "__main__":

@@ -19,4 +19,3 @@ def main():
     
     
 main()
-print(getTest().getter())

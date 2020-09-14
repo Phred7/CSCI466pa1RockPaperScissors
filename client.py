@@ -17,14 +17,18 @@ class client():
             self.ip = ip
 
         if(int(port) != -1):
-            port = int(port)
+            self.port = int(port)
 
         self.httpMsg = self.httpMsg + str(self.ip) + ':' + str(self.port)
-        self.getInit()
-
         print("\nConnecting to server @" + str(self.httpMsg))
-        self.ui()
-        print("\nClosing client...")
+        try:
+            self.getInit()       
+            self.ui()
+            self.putDisconnect()
+            print("\nClosing client...")
+        except:
+            print("\nServer or Client encountered an unrecoverable error")
+            self.putDisconnect()
 
         
 
@@ -92,7 +96,7 @@ class client():
     def getInit(self):
         self.r = self.get('init')
         if(self.r.status_code != 200):
-            print("\nExiting...")
+            print("\nClosing client...")
             exit()
         self.clientIden = int(self.r.text)
 
@@ -103,9 +107,17 @@ class client():
         if(int(self.r.status_code) == 200):
             print("\n", self.r.status_code, self.r.reason, self.r.text)
         else:
-            print("\n", self.r.status_code, self.r.reason)
+            print("\n", self.r.status_code, self.r.reason, self.r.text)
         return self.r
 
+
+
+    def putDisconnect(self):
+        try:
+            self.r = self.put(False, "disCon")
+        except:
+            pass
+            #print("\n 200 OK Server Disconnected")
 
 
     def put(self, reset, play):
@@ -128,8 +140,8 @@ class client():
 
 def run():
     if(len(sys.argv) == 3):
-        ip = sys.args[1]
-        port = int(sys.args[2])
+        ip = sys.argv[1]
+        port = int(sys.argv[2])
         c = client(ip, port)
     else:
         c = client("-1", -1)
