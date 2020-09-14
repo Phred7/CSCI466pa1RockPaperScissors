@@ -1,0 +1,73 @@
+ip,clientIden,request,data,status
+ip,clientIden,request,data,status
+ip,clientIden,request,data,status
+ip,clientIden,request,data,status
+127.0.0.1,52624,GET:init,new connection,200
+ip,clientIden,request,data,status
+ip,clientIden,request,data,status
+ip,clientIden,request,data,status
+127.0.0.1,52649,GET:init,new connection,200
+ip,clientIden,request,data,status
+ip,clientIden,request,data,status
+127.0.0.1,52665,GET:init,new connection,200
+ip,clientIden,request,data,status
+ip,clientIden,request,data,status
+ip,clientIden,request,data,status
+127.0.0.1,52682,GET:init,new connection,200
+127.0.0.1,52682,GET:results,This match tied; send another move,200
+clients,clients,gameReset,clients 52682 -1both requested a game reset,200
+127.0.0.1,52682,PUT:reset,reset request successful: game reset,200
+clients,clients,gameReset,clients 52682 -1both requested a game reset,200
+127.0.0.1,52682,PUT:reset,reset request successful: game reset,200
+ip,clientIden,request,data,status
+127.0.0.1,52699,GET:init,new connection,200
+clients,clients,gameReset,clients 52699 -1both requested a game reset,200
+127.0.0.1,52699,PUT:reset,reset request successful: game reset,200
+clients,clients,gameReset,clients 52699 -1both requested a game reset,200
+127.0.0.1,52699,PUT:reset,reset request successful: game reset,200
+clients,clients,gameReset,clients 52699 -1both requested a game reset,200
+127.0.0.1,52699,PUT:reset,reset request successful: game reset,200
+ip,clientIden,request,data,status
+clients,clients,gameReset,clients -1 -1both requested a game reset,200
+127.0.0.1,52699,PUT:disCon,remove connection,200
+127.0.0.1,52732,GET:init,new connection,200
+clients,clients,gameReset,clients 52732 -1both requested a game reset,200
+127.0.0.1,52732,PUT:reset,reset request successful: game reset,200
+ip,clientIden,request,data,status
+clients,clients,gameReset,clients -1 -1both requested a game reset,200
+127.0.0.1,52732,PUT:disCon,remove connection,200
+127.0.0.1,52826,GET:init,new connection,200
+ip,clientIden,request,data,status
+127.0.0.1,52863,GET:init,new connection,200
+ip,clientIden,request,data,status
+clients,clients,gameReset,clients -1 -1both requested a game reset,200
+127.0.0.1,52863,PUT:disCon,remove connection,200
+127.0.0.1,52871,GET:init,new connection,200
+ip,clientIden,request,data,status
+127.0.0.1,52884,GET:init,new connection,200
+ip,clientIden,request,data,status
+127.0.0.1,52922,GET:init,new connection,200
+ip,clientIden,request,data,status
+clients,clients,gameReset,clients -1 -1both requested a game reset,200
+127.0.0.1,52922,PUT:disCon,remove connection,200
+ip,clientIden,request,data,status
+127.0.0.1,52968,GET:init,new connection,200
+ip,clientIden,request,data,status
+127.0.0.1,53046,GET:init,new connection,200
+127.0.0.1,53046,PUT:reset,reset request successful: waiting on client -1,200
+127.0.0.1,53046,GET:score,You are currently tied: [0:0],200
+127.0.0.1,53046,GET:results,Results for match 0 have not been determined yet,200
+153.90.88.21,53054,GET:init,new connection,200
+clients,clients,gameReset,clients 53046 53054both requested a game reset,200
+153.90.88.21,53054,PUT:reset,reset request successful: game reset,200
+153.90.88.21,53054,GET:results,Results for match 0 have not been determined yet,200
+153.90.88.21,53054,GET:results,Results for match 0 have not been determined yet,200
+153.90.88.21,53054,PUT:reset,reset request successful: waiting on client 53046,200
+clients,clients,gameReset,clients 53046 53054both requested a game reset,200
+127.0.0.1,53046,PUT:reset,reset request successful: game reset,200
+127.0.0.1,53046,PUT:disCon,remove connection,200
+clients,clients,gameReset,clients -1 -1both requested a game reset,200
+153.90.88.21,53054,PUT:disCon,remove connection,200
+ip,clientIden,request,data,status
+ip,clientIden,request,data,status
+127.0.0.1,53088,GET:init,new connection,200

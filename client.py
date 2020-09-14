@@ -114,10 +114,11 @@ class client():
 
     def putDisconnect(self):
         try:
-            self.r = self.put(False, "disCon")
+            data = {'reset': str(False), 'play': "disCon", 'iden' : str(self.clientIden)}
+            self.r = requests.put(self.httpMsg, data)
         except:
             pass
-            #print("\n 200 OK Server Disconnected")
+
 
 
     def put(self, reset, play):

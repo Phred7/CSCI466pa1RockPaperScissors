@@ -1,1 +1,2 @@
-ip,clientIden,request,data,status
+client0, client1, numClients, score0, score1, matches, results0, results1, plays0, plays1, tied, reset0, reset1
+53088,-1,1,0,0,0,0,0,-1,-1,False,False,False

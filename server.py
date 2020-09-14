@@ -25,8 +25,9 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer, BaseHTTPRequestHan
 #HTTP does not store anything in mem between requests, must keep track of who sent reset requests
 
 class Game():
-        def __init__(self, filePath):
-                self.onDisk = filePath
+        def __init__(self, logPath, dataPath):
+                self.log = logPath
+                self.onDisk = dataPath
                 self.clients = [-1, -1] 
                 self.score = [0, 0] #wins from each game
                 self.matches = 0
@@ -35,53 +36,52 @@ class Game():
                 self.plays = [-1, -1] #r, p or s logically=to 1,2 or 3
                 self.tied = False
                 self.reset = [False, False]
-                self.f = open(self.onDisk, "w+")
-                self.f.write("ip,clientIden,request,data,status\n")
-                self.f.close()
+                self.writeLog("ip","clientIden","request","data","status")
+                self.writeData()
 
 
-
-        def serialize(self):
-                pass
-##                self.f = open(self.onDisk, "r")
-##                for line in self.f:
-##                        line = line.split(",")
-##                        #print(str(line[4]) + str(line[4]==200))
-##                        if(line[4] == "200"):
-##                                print("here")
-##                                if(line[2] == "GET:init"):
-##                                        self.clients[0] = line[1] if self.clients[0] == -1 else self.clients[0]
-##                                        self.clients[1] = line[1] if self.clients[1] == -1 else self.clients[1]
-##                                elif(line[2] == "PUT:play"):
-##                                        self.plays[0] = line[3] if self.clients[0] == line[1] else self.plays[0]
-##                                        self.plays[1] = line[3] if self.clients[1] == line[1] else self.plays[1]
-##                                elif(line[2] == "PUT:reset"):
-##                                        self.reset[0] = True if self.clients[0] == line[1] else False
-##                                        self.reset[1] = True if self.clients[1] == line[1] else False
-##                                else:
-##                                        pass
-##
-##                                if(self.plays[0] != -1 and self.plays[1] != -1):
-##                                        print("here")#self.getVictor()
-##                                self.getVictor() if (self.plays[0] != -1 and self.plays[1] != -1) else 0
-##                                
-##                self.f.close()
-
-
-
-        def writeData(self, ip, source, requestType, data, status):
+                
+        def writeLog(self, ip, source, requestType, data, status):
                 out = str(ip) + "," + str(source) + "," + str(requestType) + "," + str(data) + "," + str(status) + "\n"
-                self.f = open(self.onDisk, "a+")
+                self.f = open(self.log, "a+")
                 self.f.write(out)
                 self.f.close()
 
 
 
-        def resetGame(self):
+        def writeData(self):
                 self.f = open(self.onDisk, "w+")
-                self.f.write("ip,clientIden,request,data,status\n")
-                self.writeData("clients", "clients", "gameReset", ("clients " + str(self.clients[0]) + " " + str(self.clients[1]) + "both requested a game reset"), "200")
+                self.f.write("client0, client1, numClients, score0, score1, matches, results0, results1, plays0, plays1, tied, reset0, reset1\n")
+                self.f.write(str(self.clients[0]) + "," + str(self.clients[1]) + "," + str(self.numClients) + "," + str(self.score[0]) + "," + str(self.score[1]) + "," + str(self.matches) + "," + str(self.results[0]) + "," + str(self.results[1]) + "," + str(self.plays[0]) + "," + str(self.plays[1]) + "," + str(self.tied) + "," + str(self.reset[0]) + "," + str(self.reset[1]))
                 self.f.close()
+
+
+        def serializeData(self):
+                self.f = open(self.onDisk, "r")
+                line = ''
+                for x in self.f:
+                        x = x.split(',')
+                        if(x[0] != 'client0'):
+                                line = x
+                self.clients[0] = int(line[0])
+                self.clients[1] = int(line[1])
+                self.numClients = int(line[2])
+                self.score[0] = int(line[3])
+                self.score[1] = int(line[4])
+                self.matches = int(line[5])
+                self.results[0] = int(line[6])
+                self.results[1] = int(line[7])
+                self.plays[0] = int(line[8])
+                self.plays[1] = int(line[9])
+                self.tied = False if line[10] == "False" else True
+                self.reset[0] = False if line[11] == "False" else True
+                self.reset[1] = False if line[12] == "False" else True
+                self.f.close()
+
+
+
+        def resetGame(self):
+                self.writeLog("clients", "clients", "gameReset", ("clients " + str(self.clients[0]) + " " + str(self.clients[1]) + "both requested a game reset"), "200")
                 self.score = [0, 0]
                 self.matches = 0
                 self.results = [0, 0]
@@ -92,18 +92,13 @@ class Game():
 
 
         def getResults(self, ip, source):
-                self.serialize()
+                self.serializeData()
                 index = -1
                 response = ""
                 for i in range(len(self.clients)):
                         if(int(source) == int(self.clients[i])):
                                 index = i
                 other = 0 if index == 1 else 1
-
-                
-                #waiting for other client's play or your play
-
-                #waiting for other player
 
                 if(self.results[index] == 1):
                         response += "You won match " + str(self.matches) + "!"
@@ -117,17 +112,17 @@ class Game():
                 if(self.numClients == 0):
                         errCode = 500
                         err = "Server restart occured, restart client"
-                        self.writeData(ip, source, "GET:results", str(err), errCode)
+                        self.writeLog(ip, source, "GET:results", str(err), errCode)
                         return [errCode, err]
 
-                self.writeData(ip, source, "GET:results", str(response), 200)
-                
+                self.writeLog(ip, source, "GET:results", str(response), 200)
+                self.writeData()
                 return [200, response]
 
 
 
         def getScore(self, ip, source):
-                self.serialize()
+                self.serializeData()
                 index = -1
                 response = ""
                 for i in range(len(self.clients)):
@@ -150,16 +145,17 @@ class Game():
                 if(self.numClients == 0):
                         errCode = 500
                         err = "Server restart occured: restart client"
-                        self.writeData(ip, source, "GET:results", str(err), errCode)
+                        self.writeLog(ip, source, "GET:results", str(err), errCode)
                         return [errCode, err]                
 
-                self.writeData(ip, source, "GET:score", str(response), 200)
-                
+                self.writeLog(ip, source, "GET:score", str(response), 200)
+                self.writeData()
                 return [200, response]
 
 
 
         def putResetRequest(self, ip, source):
+                self.serializeData()
                 index = -1
                 response = ""
                 for i in range(len(self.clients)):
@@ -180,12 +176,14 @@ class Game():
                 else:
                         response += (': waiting on client ' + str(self.clients[other]))
 
-                self.writeData(ip, source, "PUT:reset", str(response), 200)
+                self.writeLog(ip, source, "PUT:reset", str(response), 200)
+                self.writeData()
                 return [200, response]
 
 
 
         def putPlay(self, ip, source, play):
+                self.serializeData()
                 index = -1
                 response = ""
                 for i in range(len(self.clients)):
@@ -236,7 +234,8 @@ class Game():
                                 self.plays = [-1, -1]
                                 response += "; match results availible"
                 
-                self.writeData(ip, source, "PUT:play", str(response), 200)
+                self.writeLog(ip, source, "PUT:play", str(response), 200)
+                self.writeData()
                 return [200, response]
 
         def incriment(self, winner):
@@ -248,33 +247,38 @@ class Game():
                         self.results = [0, 1]
 
         def initClientConnection(self, ip, source):
+                self.serializeData()
                 if(int(self.clients[0]) == -1):
                         self.clients[0] = source
                 elif(int(self.clients[1]) == -1):
                         self.clients[1] = source
                 else:
-                        self.writeData(ip, source, "GET:init", "new connection refused: too many clients", 409)
+                        self.writeLog(ip, source, "GET:init", "new connection refused: too many clients", 409)
                         return 409
                 out = str(ip) + ", " + str(source) + ", GET:init, new connection\n"
-                self.writeData(ip, source, "GET:init", "new connection", 200)
+                self.writeLog(ip, source, "GET:init", "new connection", 200)
                 self.numClients += 1
+                self.writeData()
                 return 200
 
 
 
         def disconnectClient(self, ip, source):
-                self.numClients -= 1
+                self.serializeData()
                 self.clients[0] = -1 if self.clients[0] == source else self.clients[0]
                 self.clients[1] = -1 if self.clients[1] == source else self.clients[1]
 
                 if(self.clients[0] == -1 and self.clients[1] == -1):
-                        self.reset()
+                        self.resetGame()
                 
                 if(self.clients[0] == source or self.clients[1] == source):
                         errCode = 503
                         err = "Disconnection Unsuccessful"
                         return [errCode, err]
-                self.writeData(ip, source, "PUT:disCon", "remove connection", 200)
+                self.numClients -= 1
+                self.numClients = 0 if self.numClients < 0 else self.numClients
+                self.writeLog(ip, source, "PUT:disCon", "remove connection", 200)
+                self.writeData()
                 return [200, "Disconnected"]
 
         def __str__(self):
@@ -282,8 +286,9 @@ class Game():
 
 
         
+log = "log.csv"
 onDisk = "data.csv"
-rps = Game(onDisk)
+rps = Game(log, onDisk)
 
 
 
@@ -323,10 +328,7 @@ class MyHTTPRequestHandler(SimpleHTTPRequestHandler):
                 path = {path[0]:path[1], currClient[0]:currClient[1]}
                 client = int(path.get('iden'))
                 hostIP = self.client_address[0]
-                #print("path: " + str(path))
-                #print("type: " + path.get('type'))
-                #print("iden: " + str(path.get('iden')))
-
+                
                 if((path.get('type') == 'init') and (int(path.get('iden')) == -1)):
                         sourcePort = self.client_address[1]
                         status = self.game.initClientConnection(hostIP, sourcePort)
@@ -377,10 +379,7 @@ class MyHTTPRequestHandler(SimpleHTTPRequestHandler):
                 iden = iden.split('=')
                 pData = {'reset' : reset[1], 'play' : play[1], 'iden' : iden[1]}
                 hostIP = self.client_address[0]
-                #print("reset: " + str(pData.get('reset')))
-                #print("play: " + str(pData.get('play')))
-                #print("iden: " + str(pData.get('iden')))
-                
+
                 if(str(pData.get('play')) == 'disCon'):
                         status = self.game.disconnectClient(hostIP, int(pData.get('iden')))
                         response = status[1]
@@ -677,7 +676,10 @@ def run(server_class=HTTPServer, handler_class=BaseHTTPRequestHandler):
         server_address = ('', port)
         httpd = server_class(server_address, handler_class)
         print("\nServing on port " + str(port) + "\n")
-        httpd.serve_forever()
+        try:
+                httpd.serve_forever()
+        except:
+                print("\nServer Shutting Down...")
 
 
 
