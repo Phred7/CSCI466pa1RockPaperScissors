@@ -671,7 +671,7 @@ def run(server_class=HTTPServer, handler_class=BaseHTTPRequestHandler):
         port = 8000;
         if(len(sys.argv) == 2):
                 port = int(sys.argv[1])
-                print(sys.argv[1])
+                #print(sys.argv[1])
                 
         server_address = ('', port)
         httpd = server_class(server_address, handler_class)
